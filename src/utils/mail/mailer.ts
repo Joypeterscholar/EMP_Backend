@@ -1,32 +1,34 @@
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
+import config from "../../config/variables";
 
-const sendPasswordResetEmail = async (email: string, resetToken: string) => {
-    const resetPasswordLink = `${process.env.FRONTEND_URL}/new-password/${resetToken}`;
-    const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_SERVICE,
-        port: process.env.EMAIL_PORT,
+const createTransporter = () => {
+    return nodemailer.createTransport({
+        host: config.EMAIL_SERVICE,
+        port: Number(config.EMAIL_PORT),
         secure: true,
         tls: {
-            // must provide server name, otherwise TLS certificate check will fail
-            servername: process.env.EMAIL_SERVICE,
+            servername: config.EMAIL_SERVICE,
         },
         auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD,
+            user: config.EMAIL_USER,
+            pass: config.EMAIL_PASSWORD,
         },
     } as SMTPTransport.Options);
+};
 
-    // Define email message
+const sendPasswordResetEmail = async (email: string, resetToken: string) => {
+    const resetPasswordLink = `${config.FRONTEND_URL}/new-password/${resetToken}`;
+    const transporter = createTransporter();
+
     const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: email, // Recipient email address
-        subject: 'Password Reset Request', // Email subject
-        text: `Click the following link to reset your password: ${resetPasswordLink}`,    };
+        from: config.EMAIL_USER,
+        to: email,
+        subject: 'Password Reset Request',
+        text: `Click the following link to reset your password: ${resetPasswordLink}`,
+    };
 
-    // Send the email
     await transporter.sendMail(mailOptions);
-
     console.log('Password reset email sent successfully');
 };
 
@@ -34,22 +36,11 @@ async function sendVerifyEmail(
     email: string,
     verificationToken: string,
 ): Promise<void> {
-    const verifyEmailLink = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
-    const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_SERVICE,
-        port: process.env.EMAIL_PORT,
-        secure: true,
-        tls: {
-            // must provide server name, otherwise TLS certificate check will fail
-            servername: process.env.EMAIL_SERVICE,
-        },
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD,
-        },
-    } as SMTPTransport.Options);
+    const verifyEmailLink = `${config.FRONTEND_URL}/verify-email/${verificationToken}`;
+    const transporter = createTransporter();
+
     const mailOptions = {
-        from: process.env.EMAIL_USER,
+        from: config.EMAIL_USER,
         to: email,
         subject: 'Verify Email',
         text: `Click the following link to verify your email: ${verifyEmailLink}`,
@@ -65,22 +56,11 @@ async function sendResetPasswordEmail(
     email: string,
     resetToken: string,
 ): Promise<void> {
-    const resetPasswordLink = `${process.env.FRONTEND_URL}/new-password/${resetToken}`;
-    const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_SERVICE,
-        port: process.env.EMAIL_PORT,
-        secure: true,
-        tls: {
-            // must provide server name, otherwise TLS certificate check will fail
-            servername: process.env.EMAIL_SERVICE,
-        },
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD,
-        },
-    } as SMTPTransport.Options);
+    const resetPasswordLink = `${config.FRONTEND_URL}/new-password/${resetToken}`;
+    const transporter = createTransporter();
+
     const mailOptions = {
-        from: process.env.EMAIL_USER,
+        from: config.EMAIL_USER,
         to: email,
         subject: 'Password Reset',
         text: `Click the following link to reset your password: ${resetPasswordLink}`,
@@ -93,4 +73,5 @@ async function sendResetPasswordEmail(
         throw new Error('Error sending password reset email');
     }
 }
+
 export { sendPasswordResetEmail, sendVerifyEmail, sendResetPasswordEmail };

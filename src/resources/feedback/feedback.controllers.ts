@@ -3,7 +3,7 @@ import FeedbackModel, { FeedbackStatus } from "./feedback.model";
 import { AuthUserRequest } from "../../middlewares/auth.middleware";
 import userModel from "../users/user.model";
 import { RoleType } from "../users/user.Interface";
-import { saveToDisk, UploadSampleToS3 } from "../../utils/aws/aws";
+import { uploadFile } from "../../utils/aws/aws";
 
 const isSuperAdmin = (role?: RoleType) =>
 	role === RoleType.superAdmin;
@@ -32,20 +32,7 @@ export class FeedbackController {
 			let attachment;
 			if (file) {
 				const key = `feedback/${userId}/${Date.now()}-${file.originalname}`;
-				const url = await (async () => {
-					// Use disk storage only while developing or when AWS is not configured.
-					const isDevelopment = process.env.NODE_ENV === "development";
-					const hasAWSCredentials =
-						process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
-					const shouldUseDisk = isDevelopment || !hasAWSCredentials;
-
-					if (shouldUseDisk) {
-						return saveToDisk(file.buffer, key);
-					}
-
-					// In production we rely solely on S3; let errors bubble up so the client is notified.
-					return UploadSampleToS3(file.buffer, key);
-				})();
+				const url = await uploadFile(file.path, key);
 				attachment = {
 					url,
 					filename: file.originalname,

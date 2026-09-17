@@ -1,4 +1,4 @@
-import { saveToDisk, UploadEvidenceToS3, UploadGtag, UploadSampleToS3 } from "../../utils/aws/aws";
+import { uploadFile } from "../../utils/aws/aws";
 import { Request, Response, NextFunction } from "express";
 import modelModel from "../models/model.model";
 import GtagModels from "./granular.model.ts";
@@ -36,7 +36,7 @@ export class GtagController {
         if (!Model) {
             return res.status(400).send({ status: "error", message: 'model not found' });
         }
-        const imageData = imageFile?.buffer
+        const imageData = imageFile?.path
         const imageFileName = imageFile?.originalname
         const imageKey = `GTag/${Model.modelName}/${imageFileName}`;
 
@@ -45,13 +45,7 @@ export class GtagController {
         }
         //console.log(imageData, imageKey);
 
-        imageUrl = await (async () => {
-            if (process.env.NODE_ENV === "development") {
-                let evidenceUrl = await saveToDisk(imageData, imageKey)
-                return evidenceUrl
-            }
-            return UploadGtag(imageData, imageKey)
-        })()
+        imageUrl = await uploadFile(imageData, imageKey)
 
         Gtag = await GtagModels.create({
             userId: user,

@@ -2,7 +2,7 @@ import { Response, NextFunction } from "express";
 import { modelService } from ".";
 import { HttpException } from "../../utils/exceptions/http.exceptions";
 import modelModel from "./model.model";
-import { saveToDisk, UploadSampleToS3, shouldUseLocalDisk } from "../../utils/aws/aws";
+import { uploadFile } from "../../utils/aws/aws";
 import { AuthUserRequest } from "@../../middlewares/auth.middleware";
 import objectGroupsModel from "./object-groups.model";
 
@@ -35,11 +35,11 @@ export class ModelController {
             if (typeof files === 'object' && files !== null && 'twoD' in files && Array.isArray(files['twoD'])) {
                 twoDFile = files['twoD'][0];
             }
-            const modelData = modelFile?.buffer
-            const imageData = imageFile?.buffer
+            const modelData = modelFile?.path
+            const imageData = imageFile?.path
             const imageFileName = imageFile?.originalname
             const modelFileName = modelFile?.originalname
-            const twoDFileData = twoDFile?.buffer;
+            const twoDFileData = twoDFile?.path;
             const twoDFileName = twoDFile?.originalname
             let data;
             if (typeof files === 'object' && files !== null && 'twoD' in files && Array.isArray(files['twoD'])) {
@@ -285,43 +285,30 @@ export class ModelController {
             }
             const filesCheck = await checkfiles(req);
             if (filesCheck) {
-                const useLocalDisk = shouldUseLocalDisk();
                 let imageFile: Express.Multer.File | null = null;
                 let twoDFile: Express.Multer.File | null = null;
                 // Check if the uploaded file is an array
                 if (typeof files === 'object' && files !== null && 'image' in files && Array.isArray(files['image'])) {
                     imageFile = files['image'][0];
-                    const imageData = imageFile?.buffer;
+                    const imageData = imageFile?.path;
                     const imageFileName = imageFile?.originalname;
                     const imageKey = `coverPhoto/${existingModel?.modelName}/${imageFileName}`;
                     try {
-                        coverPicture = await (async () => {
-                            if (useLocalDisk) {
-                                let imageUrl = await saveToDisk(imageData, imageKey)
-                                return imageUrl
-                            }
-                            return UploadSampleToS3(imageData, imageKey)
-                        })()
+                        coverPicture = await uploadFile(imageData, imageKey)
                     } catch (error: any) {
-                        return res.status(500).json({ message: "Failed to upload image to S3", error: error.message });
+                        return res.status(500).json({ message: "Failed to upload image", error: error.message });
                     }
                 }
 
                 if (typeof files === 'object' && files !== null && 'twoD' in files && Array.isArray(files['twoD'])) {
                     twoDFile = files['twoD'][0];
-                    const imageData = twoDFile?.buffer;
+                    const imageData = twoDFile?.path;
                     const twoDFileName = twoDFile?.originalname;
                     const twoDKey = `twoDKey/${existingModel?.modelName}/${twoDFileName}`;
                     try {
-                        twoD = await (async () => {
-                            if (useLocalDisk) {
-                                let imageUrl = await saveToDisk(imageData, twoDKey)
-                                return imageUrl
-                            }
-                            return UploadSampleToS3(imageData, twoDKey)
-                        })()
+                        twoD = await uploadFile(imageData, twoDKey)
                     } catch (error: any) {
-                        return res.status(500).json({ status: "error", message: "Failed to upload 2d image to S3", error: error.message });
+                        return res.status(500).json({ status: "error", message: "Failed to upload 2d image", error: error.message });
                     }
                 }
 

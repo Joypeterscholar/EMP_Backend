@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import locationsModels from "./locations.models";
-import { saveToDisk, UploadSampleToS3 } from "../../utils/aws/aws";
+import { uploadFile } from "../../utils/aws/aws";
 import { AuthUserRequest } from "@/middlewares/auth.middleware";
 import userModel from "../users/user.model";
 import { RoleType } from "../users/user.Interface";
@@ -24,17 +24,11 @@ export class LocationController {
                     imageFile = files['image'][0];
 
                 }
-                const imageData = imageFile?.buffer
+                const imageData = imageFile?.path
                 const imageFileName = imageFile?.originalname
                 const imageKey = `location/${name}/${imageFileName}`;
 
-                const imageUrl = await (async () => {
-                    if (process.env.NODE_ENV === "development") {
-                        let imageUrl = await saveToDisk(imageData, imageKey)
-                        return imageUrl
-                    }
-                    return UploadSampleToS3(imageData, imageKey)
-                })()
+                const imageUrl = await uploadFile(imageData, imageKey)
 
                 newLocation = await locationsModels.create({
                     name,
@@ -133,17 +127,11 @@ export class LocationController {
                     imageFile = files['image'][0];
                 }
 
-                const imageData = imageFile?.buffer;
+                const imageData = imageFile?.path;
                 const imageFileName = imageFile?.originalname;
                 const imageKey = `samples/${existingLocation.name}/${imageFileName}`;
 
-                const imageUrl = await (async () => {
-                    if (process.env.NODE_ENV === "development") {
-                        let evidenceUrl = await saveToDisk(imageData, imageKey)
-                        return evidenceUrl
-                    }
-                    return UploadSampleToS3(imageData, imageKey)
-                })()
+                const imageUrl = await uploadFile(imageData, imageKey)
 
                 updateData.image = imageUrl;
             }

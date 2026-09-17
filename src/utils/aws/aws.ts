@@ -1,24 +1,48 @@
-import AWS from "aws-sdk";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import fs from "fs";
 import fsPromises from "fs/promises";
+import { Readable } from "stream";
+import config from "../../config/variables";
 
-// const AwsaccessKeyId = process.env.AWS_ACCESS_KEY_ID
-// const AwssecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
-const s3 = new AWS.S3({
-	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-	region: "us-east-1", // specify your region
-});
+// ── Single S3 client shared across the entire app ─────────
+const s3Client = new S3Client({ region: config.AWS_REGION });
 
-const S3_BUCKET_NAME = "emp-bucket-new";
-
-interface UploadResult {
-	modelUrl: string;
-	coverPhotoUrl: string;
+function getPublicUrl(key: string): string {
+	return `https://${config.S3_BUCKET_NAME}.s3.${config.AWS_REGION}.amazonaws.com/${key}`;
 }
 
+// ── Upload to S3 (replaces all 5 duplicate functions) ─────
+export async function uploadToS3(
+	body: Buffer | Readable | string,
+	key: string
+): Promise<string> {
+	const stream = typeof body === "string"
+		? fs.createReadStream(body)
+		: body;
+
+	const command = new PutObjectCommand({
+		Bucket: config.S3_BUCKET_NAME,
+		Key: key,
+		Body: stream,
+	});
+
+	await s3Client.send(command);
+	return getPublicUrl(key);
+}
+
+// ── Delete from S3 ────────────────────────────────────────
+export async function deleteFromS3(key: string): Promise<void> {
+	const command = new DeleteObjectCommand({
+		Bucket: config.S3_BUCKET_NAME,
+		Key: key,
+	});
+	await s3Client.send(command);
+}
+
+// ── Local disk helpers ────────────────────────────────────
 export async function saveToDisk(fileContent: any, name: string) {
 	let nameParts = name.split("/");
-	name = nameParts[nameParts.length - 1]; // take only the file name
+	name = nameParts[nameParts.length - 1];
 	let fileName = `${__dirname}/${name}`;
 	let res = "";
 	await fsPromises
@@ -61,208 +85,53 @@ export async function deleteFileFromDisk(fileName: string): Promise<boolean> {
 	return res;
 }
 
-// Controller function to handle file uploads and AWS S3 upload
-export const uploadFilesToS3 = async (
-	modelFile: any,
-	coverPhotoFile: any,
-	imageKey: string,
-	modelkey: string,
-): Promise<UploadResult> => {
-	try {
-		const s3 = new AWS.S3({
-			accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-			secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-			region: "us-east-1",
-		});
-		const modelUploadParams = {
-			Bucket: S3_BUCKET_NAME!,
-			Key: modelkey,
-			Body: modelFile,
-		};
-
-		const coverPhotoUploadParams = {
-			Bucket: S3_BUCKET_NAME!,
-			Key: imageKey,
-			Body: coverPhotoFile,
-		};
-		const modelUploadResult = await s3.upload(modelUploadParams).promise();
-		const modelUrl = modelUploadResult.Location!;
-
-		if (!coverPhotoFile) {
-			return { modelUrl, coverPhotoUrl: "" };
-		}
-
-		// Upload cover photo file to AWS S3
-		const coverPhotoUploadResult = await s3
-			.upload(coverPhotoUploadParams)
-			.promise();
-		const coverPhotoUrl = coverPhotoUploadResult.Location!;
-		// await Promise.all([
-		//     s3.upload(modelUploadParams).promise(),
-		//     s3.upload(coverPhotoUploadParams).promise()
-		// ]);
-
-		// // Upload model file to AWS S3
-		// const modelUrl = `https://YOUR_S3_BUCKET_NAME.s3.amazonaws.com/${modelkey}`;
-		// const coverPhotoUrl = `https://YOUR_S3_BUCKET_NAME.s3.amazonaws.com/${imageKey}`;
-
-		// // Upload cover photo file to AWS S3
-
-		// console.log({modelUrl:modelUrl, coverPhotoUrl:coverPhotoUrl})
-		return { modelUrl, coverPhotoUrl };
-	} catch (error: any) {
-		throw new Error(error);
-	}
-};
-export const UploadEvidenceToS3 = async (
-	imageFile: any,
-	evidenceKey: string,
-): Promise<any> => {
-	try {
-		const s3 = new AWS.S3({
-			accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-			secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-			region: "us-east-1",
-		});
-		const UploadParams = {
-			Bucket: S3_BUCKET_NAME!,
-			Key: evidenceKey,
-			Body: imageFile,
-		};
-
-		const UploadResult = await s3.upload(UploadParams).promise();
-		const evidenceUrl = UploadResult.Location!;
-
-		return evidenceUrl;
-	} catch (error: any) {
-		throw new Error(error);
-	}
-};
-
-export const UploadGtag = async (
-	imageFile: any,
-	evidenceKey: string,
-): Promise<any> => {
-	try {
-		const s3 = new AWS.S3({
-			accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-			secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-			region: "us-east-1",
-		});
-
-		const UploadParams = {
-			Bucket: S3_BUCKET_NAME!,
-			Key: evidenceKey,
-			Body: imageFile,
-		};
-
-		const UploadResult = await s3.upload(UploadParams).promise();
-		const evidenceUrl = UploadResult.Location!;
-
-		return evidenceUrl;
-	} catch (error: any) {
-		throw new Error(error);
-	}
-};
-export const UploadSampleToS3 = async (
-	imageFile: any,
-	imageKey: string,
-): Promise<any> => {
-	try {
-		const s3 = new AWS.S3({
-			accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-			secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-			region: "us-east-1",
-		});
-		const UploadParams = {
-			Bucket: S3_BUCKET_NAME!,
-			Key: imageKey,
-			Body: imageFile,
-		};
-
-		const UploadResult = await s3.upload(UploadParams).promise();
-		const evidenceUrl = UploadResult.Location!;
-
-		return evidenceUrl;
-	} catch (error: any) {
-		throw new Error(error);
-	}
-};
-export const UploadUserToS3 = async (
-	imageFile: any,
-	imageKey: string,
-): Promise<any> => {
-	try {
-		//  console.log('AWS Access Key:', process.env.AWS_ACCESS_KEY_ID);
-		//  console.log('AWS Secret Access Key:', process.env.AWS_SECRET_ACCESS_KEY);
-		// console.log('S3 Bucket Name:', process.env.S3_BUCKET_NAME);
-
-		const s3 = new AWS.S3({
-			accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-			secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-			region: "us-east-1",
-		});
-		const UploadParams = {
-			Bucket: S3_BUCKET_NAME!,
-			Key: imageKey,
-			Body: imageFile,
-		};
-
-		console.log("Uploading to AWS with params:", UploadParams);
-
-		const UploadResult = await s3.upload(UploadParams).promise();
-		const evidenceUrl = UploadResult.Location!;
-		console.log(evidenceUrl);
-
-		return evidenceUrl;
-	} catch (error: any) {
-		throw new Error(error);
-	}
-};
-
-/**
- * Deletes an object from AWS S3 bucket.
- * @param {string} key - The key of the object to delete.
- * @returns {Promise<void>} - A promise that resolves once the object is deleted.
- */
-export async function deleteObjectFromS3(key: string): Promise<void> {
-	const extractedKey = extractAWSKeyFromCoverPhotoUrl(key);
-	const params = {
-		Bucket: S3_BUCKET_NAME!, // Specify your bucket name
-		Key: key, // Specify the key of the object to delete
-	};
-
-	await s3.deleteObject(params).promise();
-}
-
-/**
- * Extracts the AWS key from a cover photo URL.
- * @param {string} coverPhotoUrl - The URL of the cover photo.
- * @returns {string | null} - The AWS key if found, otherwise null.
- */
+// ── URL key extraction ────────────────────────────────────
 export function extractAWSKeyFromCoverPhotoUrl(
-	coverPhotoUrl: string,
+	coverPhotoUrl: string
 ): string | null {
-	// Split the URL by '/'
 	const urlParts = coverPhotoUrl.split("/");
-
-	// Find the index of 'coverPhoto' in the URL parts
 	const coverPhotoIndex = urlParts.indexOf("coverPhoto");
-
-	// If 'coverPhoto' is found and there are at least two more parts after it
 	if (coverPhotoIndex !== -1 && coverPhotoIndex < urlParts.length - 2) {
-		// Concatenate the parts after 'coverPhoto' to form the AWS key
 		return urlParts.slice(coverPhotoIndex + 1).join("/");
 	}
-
-	// Return null if the AWS key cannot be extracted
 	return null;
 }
 
+// ── Dev detection (fixed typo: was _ACCESS_KEY_ID) ────────
 export function shouldUseLocalDisk(): boolean {
 	return (
-		process.env.NODE_ENV === "development" ||
-		!process.env._ACCESS_KEY_ID ||
-		!process.env.AWS_SECRET_ACCESS_KEY
+		config.UPLOAD_MODE === "mongo" ||
+		!config.AWS_ACCESS_KEY_ID ||
+		!config.AWS_SECRET_ACCESS_KEY
 	);
+}
+
+// ── Unified upload: routes to S3 or local disk by UPLOAD_MODE ──
+export async function uploadFile(
+	filePath: string | undefined,
+	key: string
+): Promise<string> {
+	if (!filePath) return "";
+	if (config.UPLOAD_MODE === "aws") {
+		const url = await uploadToS3(filePath, key);
+		// cleanup temp file after S3 upload
+		await fsPromises.unlink(filePath).catch(() => {});
+		return url;
+	}
+	return saveToDisk(filePath, key);
+}
+
+// ── Unified delete: routes to S3 or local disk by UPLOAD_MODE ──
+export async function deleteFile(
+	fileUrlOrKey: string,
+): Promise<void> {
+	if (config.UPLOAD_MODE === "aws") {
+		const key = extractAWSKeyFromCoverPhotoUrl(fileUrlOrKey) || fileUrlOrKey;
+		await deleteFromS3(key);
+	} else {
+		// For local disk, extract filename from the URL path
+		const parts = fileUrlOrKey.split("/");
+		const fileName = parts[parts.length - 1];
+		await deleteFileFromDisk(fileName);
+	}
 }
