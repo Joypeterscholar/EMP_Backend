@@ -1,6 +1,5 @@
-<<<<<<< HEAD
 # EMP_Backend
-=======
+
 **Read this first: what EMP is supposed to do**
 EMP is a 3D copy of a factory. A user clicks on a machine in the 3D model and attaches a test result to it. Later, someone else searches for that test result and can jump back to the exact machine.
 So there are five things that must work perfectly:
@@ -34,4 +33,3 @@ Look at two things in the output:
 •	stage — you want IXSCAN (used an index). You do not want COLLSCAN (read everything).
 •	totalDocsExamined vs nReturned — if you returned 10 records but examined 10,000, the index is not being used properly.
 Paste that output into your pull request.
->>>>>>> 0145fcf (Initial commit)
