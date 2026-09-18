@@ -1,17 +1,18 @@
-FROM node:18-alpine 
+FROM node:18-alpine
 
 WORKDIR /emp-typescript
 
+# Install dependencies first (layer cache)
 COPY package*.json ./
-
-# Copy all files first together with tsconfig
-COPY . .
-
 RUN npm install
 
+# Copy source and build
+COPY . .
 RUN npm run build
 
+# Verify dist exists
+RUN ls -la dist/ || (echo "dist/ not found — build failed" && exit 1)
 
-COPY . . 
+EXPOSE 3000
 
-CMD npm run start
+CMD ["node", "dist/index.js"]
