@@ -5,7 +5,7 @@ import { userService } from ".";
 import { HttpException } from "../../utils/exceptions/http.exceptions";
 import { modelService } from "../models";
 import { TagsServices } from "../tags";
-import { saveToDisk, UploadUserToS3 } from "../../utils/aws/aws";
+import { uploadFile } from "../../utils/aws/aws";
 import { AuthUserRequest } from "../../middlewares/auth.middleware";
 import tagsModel from "../tags/tags.model";
 import userModel from "./user.model";
@@ -35,7 +35,7 @@ export class UserController {
 		) {
 			imageFile = files["image"][0];
 		}
-		const photoFile = imageFile?.buffer;
+		const photoFile = imageFile?.path;
 		try {
 			const data = await userService.signUpAdmin(
 				email,
@@ -121,17 +121,11 @@ export class UserController {
 					Array.isArray(files["image"])
 				) {
 					imageFile = files["image"][0];
-					const imageData = imageFile?.buffer;
+					const imageData = imageFile?.path;
 					const imageFileName = imageFile?.originalname;
 					const imageKey = `users/${username}/${imageFileName}`;
 
-					image = await (async () => {
-						if (process.env.NODE_ENV === "development") {
-							let imageUrl = await saveToDisk(imageData, imageKey);
-							return imageUrl;
-						}
-						return UploadUserToS3(imageData, imageKey);
-					})();
+				image = await uploadFile(imageData, imageKey);
 				}
 
 				data = await userService.signUpTagger(
@@ -250,17 +244,11 @@ export class UserController {
 					Array.isArray(files["image"])
 				) {
 					imageFile = files["image"][0];
-					const imageData = imageFile?.buffer;
+					const imageData = imageFile?.path;
 					const imageFileName = imageFile?.originalname;
 					const imageKey = `users/${user.username}/${imageFileName}`;
 
-					const imageUrl = await (async () => {
-						if (process.env.NODE_ENV === "development") {
-							let imageUrl = await saveToDisk(imageData, imageKey);
-							return imageUrl;
-						}
-						return UploadUserToS3(imageData, imageKey);
-					})();
+					const imageUrl = await uploadFile(imageData, imageKey);
 
 					const persistedLocation = toObjectId(user?.locations);
 					const nextLocation =

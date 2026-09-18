@@ -1,6 +1,7 @@
 import { RoleType } from '../resources/users/user.Interface';
 import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload, Secret } from 'jsonwebtoken'
+import config from '../config/variables';
 
 // Define a custom interface for the user object stored in the request
 interface AuthenticatedUser {
@@ -14,7 +15,7 @@ export interface AuthUserRequest extends Request {
     user?: AuthenticatedUser;
 }
 
-const JWT_SECRET: Secret = process.env.JWT_SECRET_KEY || ''
+const JWT_SECRET: Secret = config.JWT_SECRET_KEY
 export const authenticateUser = (req: AuthUserRequest, res: Response, next: NextFunction) => {
 
     // Check if the authorization header contains a token

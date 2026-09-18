@@ -1,7 +1,7 @@
 import incidentModel, { Incident } from './../incident/incident.model';
 import { Request, Response, NextFunction } from "express";
 import sampleModel from "./sample.model";
-import { saveToDisk, UploadSampleToS3 } from "../../utils/aws/aws";
+import { uploadFile } from "../../utils/aws/aws";
 import { AuthUserRequest } from '@/middlewares/auth.middleware';
 import userModel from '../users/user.model';
 import { RoleType } from '../users/user.Interface';
@@ -44,17 +44,11 @@ export class SampleController {
                 imageFile = files['image'][0];
 
             }
-            const imageData = imageFile?.buffer
+            const imageData = imageFile?.path
             const imageFileName = imageFile?.originalname
             const imageKey = `samples/${name}/${imageFileName}`;
 
-            imageUrl = await (async () => {
-                if (process.env.NODE_ENV === "development") {
-                    let imageUrl = await saveToDisk(imageData, imageKey)
-                    return imageUrl
-                }
-                return UploadSampleToS3(imageData, imageKey)
-            })()
+            imageUrl = await uploadFile(imageData, imageKey)
 
             sample = await sampleModel.create({
                 name,
@@ -113,18 +107,12 @@ export class SampleController {
                     imageFile = files['image'][0];
                 }
 
-                const imageData = imageFile?.buffer;
+                const imageData = imageFile?.path;
                 const imageFileName = imageFile?.originalname;
                 const imageKey = `samples/${existingSample.name}/${imageFileName}`;
 
-                // Upload image to S3 and get the URL
-                const imageUrl = await (async () => {
-                    if (process.env.NODE_ENV === "development") {
-                        let imageUrl = await saveToDisk(imageData, imageKey)
-                        return imageUrl
-                    }
-                    return UploadSampleToS3(imageData, imageKey)
-                })()
+                // Upload image and get the URL
+                const imageUrl = await uploadFile(imageData, imageKey)
 
                 // Update sample with new details
                 sample = await sampleModel.findByIdAndUpdate(

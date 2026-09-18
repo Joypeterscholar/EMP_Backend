@@ -1,5 +1,5 @@
 import moment from "moment";
-import { saveToDisk, UploadEvidenceToS3 } from "../../utils/aws/aws";
+import { uploadFile } from "../../utils/aws/aws";
 import modelModel from "../models/model.model";
 import userModel from "../users/user.model";
 import tagsModel from "./tags.model";
@@ -47,13 +47,7 @@ export const addTags = async (
 
 		if (fileName && evidenceFile) {
 			evidenceKey = `evidence/${Model.modelName}/${fileName}`;
-			evidenceUrl = await (async () => {
-				if (process.env.NODE_ENV === "development") {
-					let evidenceUrl = await saveToDisk(evidenceFile, evidenceKey);
-					return evidenceUrl;
-				}
-				return UploadEvidenceToS3(evidenceFile, evidenceKey);
-			})();
+			evidenceUrl = await uploadFile(evidenceFile, evidenceKey);
 		}
 
 		if (type === "sampling") {

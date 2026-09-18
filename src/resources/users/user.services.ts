@@ -1,9 +1,7 @@
 import bcrypt from "bcryptjs";
-import aws from "aws-sdk";
 import UserSchema from "./user.model";
 import * as speakeasy from "speakeasy";
 import * as jwt from "jsonwebtoken";
-import * as dotenv from "dotenv";
 import userModel from "./user.model";
 import {
 	sendResetPasswordEmail,
@@ -14,17 +12,8 @@ import User, { RoleType } from "./user.Interface";
 import locationsModels from "../locations/locations.models";
 import mongoose from "mongoose";
 import { toObjectId } from "../../utils/mongo";
-dotenv.config();
-
-const s3 = new aws.S3({
-	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-	region: "us-east-1",
-	apiVersion: "2006-03-01",
-	signatureVersion: "v4",
-});
-
-const S3_BUCKET_NAME = process.env.AWS_BUCKET;
+import config from "../../config/variables";
+import { uploadToS3 } from "../../utils/aws/aws";
 
 export const signUpAdmin = async (
 	email: string,
@@ -41,24 +30,9 @@ export const signUpAdmin = async (
 
 		let photoUrl = "";
 		if (photoFile) {
-			const bucketName = process.env.S3_BUCKET_NAME;
-			if (!bucketName) {
-				throw new Error(
-					"S3_BUCKET_NAME environment variable is not defined"
-				);
-			}
-
 			const photoKey = `UserPhotos/${username}/coverPhotos`;
-			const uploadModelParams = {
-				Bucket: bucketName,
-				Key: photoKey,
-				Body: photoFile,
-			};
-
 			try {
-				await s3.upload(uploadModelParams).promise();
-				// console.log('upload to s3');
-				photoUrl = `https://${bucketName}.s3.amazonaws.com/${photoKey}`;
+				photoUrl = await uploadToS3(photoFile, photoKey);
 			} catch (error) {
 				console.error("Failed to upload image to AWS:", error);
 				throw new Error("Failed to upload image");

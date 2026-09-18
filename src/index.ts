@@ -10,6 +10,8 @@ import { Granular } from "./resources/granular/granular.routes";
 import { IncidentRoutes } from "./resources/incident/incident.routes";
 import { FilesRoute } from "./resources/localfile/localfile.router";
 import { FeedbackRoutes } from "./resources/feedback/feedback.routes";
+import * as dotenv from "dotenv";
+dotenv.config();
 const app = new App(
     [
         new UserRoute(),

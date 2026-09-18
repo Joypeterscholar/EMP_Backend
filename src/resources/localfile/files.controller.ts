@@ -8,9 +8,7 @@ export class FilesController {
             let file = await getFileFromDisk(filename)
             res.status(200).send(file)
         } catch (error: any) {
-            console.log(error)
-            return { error: error.message };
+            next(error);
         }
     }
 }
-

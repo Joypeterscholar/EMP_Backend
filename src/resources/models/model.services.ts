@@ -1,22 +1,12 @@
 
-import aws from 'aws-sdk'
 import modelModel from "./model.model";
-import { UploadEvidenceToS3, deleteFileFromDisk, deleteObjectFromS3, extractAWSKeyFromCoverPhotoUrl, saveToDisk, shouldUseLocalDisk, uploadFilesToS3 } from "../../utils/aws/aws";
+import { uploadFile } from "../../utils/aws/aws";
 import { endOfToday, startOfDay, startOfToday, subDays } from 'date-fns';
 import locationsModels from "../locations/locations.models";
 import userModel from "../users/user.model";
 import { RoleType } from '../users/user.Interface';
 import tagsModel from '../tags/tags.model';
 import { toObjectId, toObjectIdArray } from "../../utils/mongo";
-
-const s3 = new aws.S3({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: 'us-east-1',
-    apiVersion: '2006-03-01',
-    signatureVersion: 'v4',
-});
-const S3_BUCKET_NAME = 'enviromentalmapping';
 
 export const createModel = async (
     modelName: string,
@@ -32,7 +22,6 @@ export const createModel = async (
     twoDFileName?: string
 ): Promise<any> => {
     try {
-        const useLocalDisk = shouldUseLocalDisk();
         const user = await userModel.findOne({ _id: userId })
         if (!user) { return { error: "user not found" } }
         if (!size) size = 0
@@ -49,24 +38,12 @@ export const createModel = async (
             slugExists = await modelModel.exists({ slug }) !== null;
         }
 
-        const { modelUrl, coverPhotoUrl } = await (async () => {
-            if (useLocalDisk) {
-                let modelUrl = await saveToDisk(modelFile, modelKey)
-                let coverPhotoUrl = await saveToDisk(imageFile, imageKey)
-                return { modelUrl, coverPhotoUrl }
-            }
-            return uploadFilesToS3(modelFile, imageFile, imageKey, modelKey);
-        })()
+        const modelUrl = await uploadFile(modelFile, modelKey);
+        const coverPhotoUrl = await uploadFile(imageFile, imageKey);
         let model;
         if (twoDFileData && twoDFileName) {
 
-            const twoDUrl = await (async () => {
-                if (useLocalDisk) {
-                    let twoDUrl = await saveToDisk(twoDFileData, twoDimageKey)
-                    return twoDUrl
-                }
-                return UploadEvidenceToS3(twoDFileData, twoDimageKey)
-            })()
+            const twoDUrl = await uploadFile(twoDFileData, twoDimageKey)
 
             model = modelModel.create({
                 description,
@@ -276,14 +253,10 @@ export const deleteModel = async (id: string): Promise<any> => {
         // Delete cover photo from AWS S3 if it exists
         if (modelToDelete.coverPicture) {
             try {
-                const extractedKey = extractAWSKeyFromCoverPhotoUrl(modelToDelete.coverPicture)
-                if (process.env.NODE_ENV === "development") {
-                    deleteFileFromDisk(modelToDelete.coverPicture)
-                } else {
-                    await deleteObjectFromS3(modelToDelete.coverPicture);
-                }
+                const { deleteFile } = await import("../../utils/aws/aws");
+                await deleteFile(modelToDelete.coverPicture);
             } catch (error) {
-                console.error('Failed to delete cover photo from AWS S3:', error);
+                console.error('Failed to delete cover photo:', error);
             }
         }
 

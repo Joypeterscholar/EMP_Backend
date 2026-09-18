@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import locationsModels from "./locations.models";
-import { saveToDisk, UploadSampleToS3 } from "../../utils/aws/aws";
+import { uploadFile } from "../../utils/aws/aws";
 import { AuthUserRequest } from "@/middlewares/auth.middleware";
 import userModel from "../users/user.model";
 import { RoleType } from "../users/user.Interface";
@@ -11,53 +11,36 @@ export class LocationController {
         try {
             const { name, user } = req.body
             const files = req.files;
-            const location = "Texas"
             let newLocation
             if (!name) {
                 return res.status(400).send({ status: "error", message: 'Name is required' });
             }
-            if (files) {
-                // File was sent, handle the upload
-                let imageFile: Express.Multer.File | null = null;
-
-                if (typeof files === 'object' && files !== null && 'image' in files && Array.isArray(files['image'])) {
-                    imageFile = files['image'][0];
-
-                }
-                const imageData = imageFile?.buffer
-                const imageFileName = imageFile?.originalname
+            if (files && typeof files === 'object' && 'image' in files && Array.isArray(files['image']) && files['image'][0]) {
+                const imageFile = files['image'][0];
+                const imageData = imageFile.path;
+                const imageFileName = imageFile.originalname;
                 const imageKey = `location/${name}/${imageFileName}`;
 
-                const imageUrl = await (async () => {
-                    if (process.env.NODE_ENV === "development") {
-                        let imageUrl = await saveToDisk(imageData, imageKey)
-                        return imageUrl
-                    }
-                    return UploadSampleToS3(imageData, imageKey)
-                })()
+                const imageUrl = await uploadFile(imageData, imageKey)
 
                 newLocation = await locationsModels.create({
                     name,
-                    location,
                     user,
                     image: imageUrl
                 })
-
             } else {
                 newLocation = await locationsModels.create({
                     name,
-                    location,
                     user,
                 })
             }
-
 
             res.status(200).json({
                 message: 'success',
                 data: newLocation
             })
         } catch (error: any) {
-            return { error: error.message };
+            next(error);
         }
     }
     async getLocations(req: AuthUserRequest, res: Response, next: NextFunction) {
@@ -99,14 +82,13 @@ export class LocationController {
                 });
             }
         } catch (error: any) {
-            return { error: error.message };
+            next(error);
         }
     }
     async updateLocations(req: AuthUserRequest, res: Response, next: NextFunction) {
         try {
             const id = req.params.id
             const { name } = req.body
-            const location = "Texas"
             let locations;
             const files = req.files;
             
@@ -117,33 +99,20 @@ export class LocationController {
             const existingLocation = await locationsModels.findById(id)
 
             if (!existingLocation) {
-                return res.status(404).send('Location not found');  // Updated error message
+                return res.status(404).send('Location not found');
             }
 
             // Create update object with only provided fields
-            const updateData: { name?: string; location?: string; image?: string } = {};
+            const updateData: { name?: string; image?: string } = {};
             if (name) updateData.name = name;
-            if (location) updateData.location = location;
 
-            if (files) {
-                // File was sent, handle the upload
-                let imageFile: Express.Multer.File | null = null;
+            if (files && typeof files === 'object' && 'image' in files && Array.isArray(files['image']) && files['image'][0]) {
+                const imageFile = files['image'][0];
+                const imageData = imageFile.path;
+                const imageFileName = imageFile.originalname;
+                const imageKey = `location/${existingLocation.name}/${imageFileName}`;
 
-                if (typeof files === 'object' && files !== null && 'image' in files && Array.isArray(files['image'])) {
-                    imageFile = files['image'][0];
-                }
-
-                const imageData = imageFile?.buffer;
-                const imageFileName = imageFile?.originalname;
-                const imageKey = `samples/${existingLocation.name}/${imageFileName}`;
-
-                const imageUrl = await (async () => {
-                    if (process.env.NODE_ENV === "development") {
-                        let evidenceUrl = await saveToDisk(imageData, imageKey)
-                        return evidenceUrl
-                    }
-                    return UploadSampleToS3(imageData, imageKey)
-                })()
+                const imageUrl = await uploadFile(imageData, imageKey)
 
                 updateData.image = imageUrl;
             }
@@ -160,7 +129,7 @@ export class LocationController {
                 data: locations
             })
         } catch (error: any) {
-            return { error: error.message };
+            next(error);
         }
     }
 
@@ -182,7 +151,7 @@ export class LocationController {
                 data: locations
             })
         } catch (error: any) {
-            return { error: error.message };
+            next(error);
         }
     }
 

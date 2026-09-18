@@ -7,19 +7,10 @@ import cors from "cors";
 import { ErrorMiddleWare } from "./middlewares/error.middleware";
 import { Error404Middleware } from "./middlewares/error-404.middlewares";
 import debug from "debug";
-import dotenv from "dotenv";
-import path from "path";
 import { seedSuperAdmin } from "./resources/users/user.services";
-
-// Load environment-specific .env file
-const envFile = process.env.NODE_ENV
-    ? `.env.${process.env.NODE_ENV}`
-    : '.env';
-
-dotenv.config({
-    path: path.resolve(process.cwd(), envFile),
-    override: true
-});
+import config from "./config/variables";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger";
 
 export class App {
     public app: Application;
@@ -51,6 +42,16 @@ export class App {
         this.app.use(express.urlencoded({ extended: false }));
         // this.app.use(compression());
 
+        // Swagger UI
+        this.app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+            customCss: ".swagger-ui .topbar { display: none }",
+            customSiteTitle: "EMP Backend API Docs",
+        }));
+        // Serve raw OpenAPI spec as JSON
+        this.app.get("/api/docs.json", (_req, res) => {
+            res.setHeader("Content-Type", "application/json");
+            res.send(swaggerSpec);
+        });
     }
     private initialiseControllers(
         controllers: Controller[],
@@ -72,7 +73,7 @@ export class App {
     }
 
     private async initialiseDatabaseConnection(): Promise<void> {
-        const { MONGO_URL, NODE_ENV } = process.env;
+        const { MONGO_URL, NODE_ENV } = config;
         console.log(MONGO_URL)
         const connectDB = async () => {
             try {

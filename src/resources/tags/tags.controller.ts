@@ -43,7 +43,7 @@ export class TagController {
 				Array.isArray(files["evidence"])
 			) {
 				imageFile = files["evidence"][0];
-				evidenceFile = imageFile?.buffer;
+				evidenceFile = imageFile?.path;
 				fileName = imageFile?.originalname;
 			}
 
@@ -102,7 +102,7 @@ export class TagController {
 				Array.isArray(files["evidence"])
 			) {
 				imageFile = files["evidence"][0];
-				evidenceFile = imageFile?.buffer;
+				evidenceFile = imageFile?.path;
 				fileName = imageFile?.originalname;
 			}
 
@@ -128,7 +128,7 @@ export class TagController {
 				data: tag,
 			});
 		} catch (error: any) {
-			return { error: error.message };
+			next(new HttpException(400, error.message));
 		}
 	}
 
@@ -139,7 +139,7 @@ export class TagController {
 				message: "tag deleted successfully",
 			});
 		} catch (error: any) {
-			return { error: error.message };
+			next(new HttpException(400, error.message));
 		}
 	}
 	async getTotalTagsBySampleAndDay(
@@ -162,7 +162,7 @@ export class TagController {
 				data,
 			});
 		} catch (error: any) {
-			return { error: error.message };
+			next(new HttpException(400, error.message));
 		}
 	}
 

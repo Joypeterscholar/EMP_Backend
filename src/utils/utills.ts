@@ -1,7 +1,8 @@
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import { Request } from "express";
+import config from "../config/variables";
 
-const JWT_SECRET: Secret = process.env.JWT_SECRET_KEY || "";
+const JWT_SECRET: Secret = config.JWT_SECRET_KEY;
 
 /**@function generates 6 randon digits for reset password
  * @default '''
