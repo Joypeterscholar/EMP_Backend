@@ -7,22 +7,10 @@ import cors from "cors";
 import { ErrorMiddleWare } from "./middlewares/error.middleware";
 import { Error404Middleware } from "./middlewares/error-404.middlewares";
 import debug from "debug";
-import dotenv from "dotenv";
-import path from "path";
 import { seedSuperAdmin } from "./resources/users/user.services";
 import config from "./config/variables";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger";
-
-// Load environment-specific .env file
-const envFile = config.NODE_ENV
-    ? `.env.${config.NODE_ENV}`
-    : '.env';
-
-dotenv.config({
-    path: path.resolve(process.cwd(), envFile),
-    override: true
-});
 
 export class App {
     public app: Application;

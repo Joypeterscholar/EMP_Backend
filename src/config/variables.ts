@@ -1,4 +1,16 @@
 import dotenv from "dotenv";
+import path from "path";
+
+// Load the environment-specific .env file (e.g. .env.production, .env.development)
+const envFile = process.env.NODE_ENV
+  ? `.env.${process.env.NODE_ENV}`
+  : ".env";
+
+dotenv.config({
+  path: path.resolve(process.cwd(), envFile),
+  override: true,
+});
+// Also load the base .env as a fallback for values not in the env-specific file
 dotenv.config();
 
 const rawUploadMode = (process.env.UPLOAD_MODE || "mongo").toLowerCase();
