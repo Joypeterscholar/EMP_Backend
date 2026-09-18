@@ -6,6 +6,8 @@ node_modules
 !.env.example
 *.log
 dist
+SESSION_SUMMARY_*.txt
+
 # ignore local files from dev uploads
 src/utils/aws/*
 !src/utils/aws/aws.ts

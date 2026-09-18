@@ -421,7 +421,7 @@ export class ModelRoute {
          *         description: Object group deleted
          */
         this.router.delete(
-            `${this.path}/:modelId/object-group/:objectGroupId}`,
+            `${this.path}/:modelId/object-group/:objectGroupId`,
             authenticateUser,
             this.model.deleteObjectGroup
         );

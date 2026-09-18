@@ -204,7 +204,7 @@ export class TagsRoute {
          *         description: Model tags deleted
          */
         this.router.delete(
-            `${this.path}/delete-model-tags/:id}`,
+            `${this.path}/delete-model-tags/:id`,
             authenticateUser,
             this.tag.deleteModelTags
         );

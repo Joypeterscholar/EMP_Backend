@@ -128,7 +128,7 @@ export class IncidentRoutes {
          *         description: Incident deleted
          */
         this.router.delete(
-            `${this.path}/incident-delete/:id}`,
+            `${this.path}/incident-delete/:id`,
             authenticateUser,
             this.Incident.deleteIncident
         );
